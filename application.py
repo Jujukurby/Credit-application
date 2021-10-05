@@ -7,6 +7,7 @@ from dash.dependencies import Input, Output
 import xgboost as xgb
 import plotly.graph_objects as go
 import plotly.express as px
+import dash_daq as daq
 
 app = dash.Dash(__name__, prevent_initial_callbacks=True)
 
@@ -24,11 +25,14 @@ data = data.loc[:,best_scores]
 
 data['Probability_of_reemboursement'] = proba_test_client[:,0]
 
+colors = {
+    'background': '#111111',
+    'text': '#7FDBFF'
+}
 
-
-app.layout = html.Div(
+app.layout = html.Div(style={'backgroundColor': 'black', 'text' : "white"},
     children=[
-        html.H1(children="blahablah",),
+        html.H1(children="Credit : give it or not ?",),
         dcc.Dropdown(
         id='selected_client',
         options=[{'label':i, 'value':i} for i in data.index.unique()]
@@ -41,7 +45,7 @@ app.layout = html.Div(
             ),
         html.P(
             id='graph-with-client',
-            ),
+            )
     ]
 )
 
@@ -58,9 +62,16 @@ def update_output(selected_client):
     i=0
     for col in  data.columns[0:-1]:
         fig = go.Figure()
-        fig = fig.add_histogram(x = toplot[col], marker=dict(color=palette[i]) )
-        fig = fig.add_vline(client_data[col])
-        fig = fig.update_layout(title=col)
+        fig.add_histogram(x = toplot[col], marker=dict(color=palette[i]) )
+        fig.add_vline(client_data[col])
+        fig.update_layout( {
+                'title' : col,
+                'plot_bgcolor': colors['background'],
+                'paper_bgcolor': colors['background'],
+                'font': {
+                'color': colors['text'] 
+                }
+                })
         output.append(dcc.Graph(id=col,figure=fig))
     return output
 
@@ -70,14 +81,26 @@ def update_output(selected_client):
 )
 def circle_proba(selected_client):
     client_data = data.loc[selected_client,:]
-    values = [client_data['Probability_of_reemboursement'], 1-client_data['Probability_of_reemboursement']]
-    fig = go.Figure(data=[go.Pie(values=values, hole = 0.4)])
-    # fig = fig.add_shape(type="circle",
-    # xref="x", yref="y",
-    # fillcolor="white",
-    # x0=0, y0=0, x1 = 0.5, y1=0.5,
-    # line_color="LightSeaGreen",
-    # )
+    score = round(client_data['Probability_of_reemboursement']*100,2)
+    values = [score, (100-score)]
+    if score >= 70:
+        score_color = 'green'
+    elif score <= 50:
+        score_color = 'yellow'
+    else:
+        score_color = 'red'
+    fig = go.Figure(data=[go.Pie(values=values, hole = 0.7)])
+    fig.update_layout( {
+                'title' : 'Probabylity of reemboursment',
+                'plot_bgcolor': colors['background'],
+                'paper_bgcolor': colors['background'],
+                'font': {
+                'color': colors['text'] }})
+    fig.add_annotation(x= 0.5, y = 0.5,
+                    text = str(score),
+                    font = dict(size=20,family='Verdana', 
+                                color= score_color),
+                    showarrow = False)
     return fig
 
 
