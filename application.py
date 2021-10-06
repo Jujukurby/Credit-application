@@ -1,13 +1,11 @@
 import dash
 import dash.dcc as dcc
 import dash.html as html
-from dash.html.P import P
 import pandas as pd
 from dash.dependencies import Input, Output
 import xgboost as xgb
 import plotly.graph_objects as go
 import plotly.express as px
-import dash_daq as daq
 
 app = dash.Dash(__name__, prevent_initial_callbacks=True)
 
@@ -85,7 +83,7 @@ def circle_proba(selected_client):
     values = [score, (100-score)]
     if score >= 70:
         score_color = 'green'
-    elif score <= 50:
+    elif score >= 50:
         score_color = 'yellow'
     else:
         score_color = 'red'
