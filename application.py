@@ -9,6 +9,8 @@ import plotly.express as px
 
 app = dash.Dash(__name__, prevent_initial_callbacks=True)
 
+server = app.server
+
 model = xgb.XGBClassifier()
 model.load_model("final_model_give_credit.json")
 data = pd.read_csv("client_database.csv", index_col="SK_ID_CURR")
