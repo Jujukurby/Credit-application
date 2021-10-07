@@ -15,13 +15,13 @@ model = xgb.XGBClassifier()
 model.load_model("final_model_give_credit.json")
 data = pd.read_csv("client_database.csv", index_col="SK_ID_CURR")
 
-proba_test_client = model.predict_proba(data)
+
 
 best_scores = pd.DataFrame.from_dict(model.get_booster().get_fscore(), orient='index').reset_index()
 best_scores.columns = ['Features', 'Importance']
 best_scores = best_scores.sort_values(by='Importance', ascending = False).iloc[:20,0].tolist()
 best_scores = [x.rstrip("\n") for x in best_scores]
-data = data.loc[:,best_scores]
+data_toplot = data.loc[:,best_scores]
 
 data['Probability_of_reemboursement'] = proba_test_client[:,0]
 
@@ -54,13 +54,12 @@ app.layout = html.Div(style={'backgroundColor': 'black', 'text' : "white"},
     Input(component_id='selected_client', component_property='value')
 )
 def update_output(selected_client):
-    client_data = data.loc[selected_client,:]
-    toplot = data[data['Probability_of_reemboursement'] >= 0.7]
+    client_data = data_toplot.loc[selected_client,:]
     output = []
     palette = px.colors.qualitative.G10
     palette = palette + palette
     i=0
-    for col in  data.columns[0:-1]:
+    for col in  data_toplot.columns[0:-1]:
         fig = go.Figure()
         fig.add_histogram(x = toplot[col], marker=dict(color=palette[i]) )
         fig.add_vline(client_data[col])
@@ -81,7 +80,8 @@ def update_output(selected_client):
 )
 def circle_proba(selected_client):
     client_data = data.loc[selected_client,:]
-    score = round(client_data['Probability_of_reemboursement']*100,2)
+    proba = model.predict_proba(client_data)
+    score = round(proba*100,2)
     values = [score, (100-score)]
     if score >= 70:
         score_color = 'green'
