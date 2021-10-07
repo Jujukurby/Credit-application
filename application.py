@@ -1,6 +1,7 @@
 import dash
 import dash.dcc as dcc
 import dash.html as html
+from matplotlib.pyplot import figure, legend
 import pandas as pd
 from dash.dependencies import Input, Output
 import xgboost as xgb
@@ -30,18 +31,17 @@ colors = {
     'text': '#7FDBFF'
 }
 
-app.layout = html.Div(style={'backgroundColor': 'black', 'text' : "white"},
+app.layout = html.Div(style={'backgroundColor': 'black'},
     children=[
-        html.H1(children="Credit : give it or not ?",),
+        html.H1(children="Credit : give it or not ?",
+                 style={'color' : colors['text']}),
         dcc.Dropdown(
         id='selected_client',
-        options=[{'label':i, 'value':i} for i in data.index.unique()]
-        ,
-
-         placeholder="Select a client",
+        options=[{'label':i, 'value':i} for i in data.index.unique()],
+        placeholder="Select a client",
     ),
         html.P(
-            dcc.Graph(id='circle_proba')
+            id='circle_proba',
             ),
         html.P(
             id='graph-with-client',
@@ -58,11 +58,11 @@ def update_output(selected_client):
     output = []
     palette = px.colors.qualitative.G10
     palette = palette + palette
-    i=0
-    for col in  data_toplot.columns[0:-1]:
+    
+    for i, col in  enumerate(data_toplot.columns[0:-1]):
         fig = go.Figure()
-        fig.add_histogram(x = data_toplot[col], marker=dict(color=palette[i]) )
-        fig.add_vline(client_data[col])
+        fig.add_histogram(x = data_toplot[col], marker_color=palette[i])
+        fig.add_vline(client_data[col], line_color="white")
         fig.update_layout( {
                 'title' : col,
                 'plot_bgcolor': colors['background'],
@@ -75,33 +75,39 @@ def update_output(selected_client):
     return output
 
 @app.callback(
-    Output('circle_proba', 'figure'),
+    Output('circle_proba', 'children'),
     Input(component_id='selected_client', component_property='value')
 )
 def circle_proba(selected_client):
+    palette = px.colors.qualitative.Vivid
     client_data = data.loc[[selected_client]]
     proba = model.predict_proba(client_data)
     score = round(proba[0][0]*100,2)
     values = [score, (100-score)]
     if score >= 70:
-        score_color = 'green'
+        score_color = palette[3]
     elif score >= 50:
-        score_color = 'yellow'
+        score_color = palette[0]
     else:
-        score_color = 'red'
+        score_color = palette[9]
     fig = go.Figure(data=[go.Pie(values=values, hole = 0.7)])
     fig.update_layout( {
-                'title' : 'Probabylity of reemboursment',
+                'title' : 'Probability of reimbursement',
                 'plot_bgcolor': colors['background'],
                 'paper_bgcolor': colors['background'],
                 'font': {
-                'color': colors['text'] }})
+                'color': colors['text'] },
+                'showlegend':False})
+
+    fig.update_traces(hoverinfo='label+percent', textinfo='none', textfont_size=20,
+                  marker=dict(colors=[score_color, 'grey']))
     fig.add_annotation(x= 0.5, y = 0.5,
                     text = str(score),
                     font = dict(size=20,family='Verdana', 
                                 color= score_color),
                     showarrow = False)
-    return fig
+    dccgraph = dcc.Graph(id = 'circle_plot', figure=fig)
+    return dccgraph
 
 
 if __name__ == "__main__":
