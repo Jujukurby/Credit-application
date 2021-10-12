@@ -192,7 +192,7 @@ def circle_new_proba(selected_client, table, rows, columns):
             score_color = palette[9]
         fig = go.Figure(data=[go.Pie(values=values, hole = 0.7)])
         fig.update_layout( {
-                    'title' : 'Probability of reimbursement',
+                    'title' : 'New probability of reimbursement',
                     'plot_bgcolor': colors['background'],
                     'paper_bgcolor': colors['background'],
                     'font': {
