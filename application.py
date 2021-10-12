@@ -206,7 +206,18 @@ def circle_new_proba(selected_client, table, rows, columns):
                         font = dict(size=20,family='Verdana', 
                                     color= score_color),
                         showarrow = False)
-        dccgraph = dcc.Graph(id = 'circle_plot', figure=fig)
+        graph = dcc.Graph(id = 'circle_plot', figure=fig)
+        newtable = dash_table.DataTable(id = 'the_new_table',
+            columns=(
+            [{'id': p, 'name': p} for p in newdata]
+        ),
+        data=[newdata.to_dict(orient='list')],
+        editable=False,
+        fixed_rows={'headers': True},
+        style_cell={
+        'minWidth': 110, 'maxWidth': 110, 'width': 110
+        })
+        dccgraph = [graph, newtable]
     else:
         dccgraph = []
     return dccgraph
