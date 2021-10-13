@@ -1,10 +1,6 @@
-from operator import ne
 import dash
 import dash.dcc as dcc
-from dash.exceptions import PreventUpdate
 import dash.html as html
-from dash.html.H2 import H2
-from matplotlib.pyplot import figure, legend
 import pandas as pd
 from dash.dependencies import Input, Output
 from dash import dash_table
@@ -13,28 +9,36 @@ import xgboost as xgb
 import plotly.graph_objects as go
 import plotly.express as px
 
+
+
+#App initialization, prevents of initial callbacks to have a tidy webpage
 app = dash.Dash(__name__, prevent_initial_callbacks=True)
 
 server = app.server
 
+
+#import of the xgboost model and clients' data
 model = xgb.XGBClassifier()
 model.load_model("final_model_give_credit.json")
 data = pd.read_csv("client_database.csv", index_col="SK_ID_CURR")
 
 
-
+#defining the 20 first best features, e.g. the best fscores.
 best_scores = pd.DataFrame.from_dict(model.get_booster().get_fscore(), orient='index').reset_index()
 best_scores.columns = ['Features', 'Importance']
 best_scores = best_scores.sort_values(by='Importance', ascending = False).iloc[:20,0].tolist()
 best_scores = [x.rstrip("\n") for x in best_scores]
 
-
+#isolating the 20 first best features for every clients
 data_toplot = data.loc[:,best_scores]
 
+#defining colors used for the webpage
 colors = {
     'background': '#111111',
     'text': '#7FDBFF'
 }
+
+#webpage layout
 
 app.layout = html.Div(style={'backgroundColor': 'black'},
     children=[
@@ -72,7 +76,7 @@ app.layout = html.Div(style={'backgroundColor': 'black'},
     ]
 )
 
-
+#callback to display a table of 20 firsts more important features of a selected client
 @app.callback(
     Output('new-table', 'children'),
     [Input('change_table', 'on'), Input('selected_client', 'value')]
@@ -103,7 +107,8 @@ def table_client(change_table, selected_client):
     })
     return newtable
 
-
+#callback to display graphs of the distribution of the 20 first more important features and locating the selected client within this data
+#(located by a white line) 
 @app.callback(
     Output('graph-with-client', 'children'),
     [Input(component_id='selected_client', component_property='value'), Input('change_table', 'on')]
@@ -130,6 +135,7 @@ def update_output(selected_client, table):
             output.append(dcc.Graph(id=col,figure=fig))
     return output
 
+#a donut graph representing the score of our xgboost prediction  (propability*100)
 @app.callback(
     Output('circle_proba', 'children'),
     Input(component_id='selected_client', component_property='value')
@@ -165,6 +171,7 @@ def circle_proba(selected_client):
     dccgraph = dcc.Graph(id = 'circle_plot', figure=fig)
     return dccgraph
 
+#same as above, but with manual modifications of the values taken in account for calculating the score thanks to a editable table (ie "newtable")
 @app.callback(
     Output('circle_new_proba', 'children'),
     Input(component_id='selected_client', component_property='value'),
