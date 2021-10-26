@@ -8,6 +8,8 @@ import dash_daq as daq
 import xgboost as xgb
 import plotly.graph_objects as go
 import plotly.express as px
+import requests as req
+
 
 
 
@@ -16,12 +18,11 @@ app = dash.Dash(__name__, prevent_initial_callbacks=True)
 
 server = app.server
 
+data = pd.read_csv("client_database.csv", index_col="SK_ID_CURR")
 
 #import of the xgboost model and clients' data
 model = xgb.XGBClassifier()
 model.load_model("final_model_give_credit.json")
-data = pd.read_csv("client_database.csv", index_col="SK_ID_CURR")
-
 
 #defining the 20 first best features, e.g. the best fscores.
 best_scores = pd.DataFrame.from_dict(model.get_booster().get_fscore(), orient='index').reset_index()
@@ -141,10 +142,13 @@ def update_output(selected_client, table):
     Input(component_id='selected_client', component_property='value')
 )
 def circle_proba(selected_client):
-    palette = px.colors.qualitative.Vivid
-    client_data = data.loc[[selected_client]]
-    proba = model.predict_proba(client_data)
-    score = round(proba[0][0]*100,2)
+    url = 'https://api-credit-openclassrooms.herokuapp.com/' + str(selected_client)
+    resp = req.get(url)
+    dico = resp.json()
+    dico = dico.get("Proba_reimbursment")
+    proba = dico.get(str(selected_client))
+    palette = px.colors.qualitative.Vivid    
+    score = round(proba*100,2)
     values = [score, (100-score)]
     if score >= 70:
         score_color = palette[3]
@@ -188,6 +192,8 @@ def circle_new_proba(selected_client, table, rows, columns):
         newdata.set_index('SK_ID_UNIQ', drop=True, inplace=True)
         for col in newdata.columns:
             client_data.loc[selected_client,col] =  newdata.loc[selected_client,col]
+        model = xgb.XGBClassifier()
+        model.load_model("final_model_give_credit.json")
         proba = model.predict_proba(client_data)
         score = round(proba[0][0]*100,2)
         values = [score, (100-score)]
